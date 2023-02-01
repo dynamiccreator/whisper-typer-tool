@@ -6,7 +6,7 @@ After you start the script you just press **F2** to start/stop recording. After 
 
 **Step 1 (Linux - Ubuntu,Debian):**
 
-        sudo apt-get install python3 python3-pip git ffmpeg
+    sudo apt-get install python3 python3-pip git ffmpeg
 
 **Step 1 (Windows):**
 
