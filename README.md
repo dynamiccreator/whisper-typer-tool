@@ -16,12 +16,12 @@ Download and Install python3 from https://www.python.org/downloads/windows/
 
 **Step 1 (MAC OS - not tested):**
 
-<code>Download and Install ffmpeg, git and python3</code>
+Download and Install ffmpeg, git and python3
 
 **Step 2:**
 
-pip install -r requirements.txt
+```bash pip install -r requirements.txt```
 
 **Step 3:**
 
-python3 whisper-typer-tool.py
+```bash python3 whisper-typer-tool.py```
