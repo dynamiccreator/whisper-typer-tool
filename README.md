@@ -10,7 +10,7 @@ After you start the script you just press **F2** to start/stop recording. After 
 
 **Step 1 (Windows):**
 
-- Download and Install ffmpeg from https://ffmpeg.org/
+- Download ffmpeg from https://ffmpeg.org/ , unpack it and paste "ffmpeg.exe" in this folder
 - Download and Install git from https://git-scm.com/download/win
 - Download and Install python3 from https://www.python.org/downloads/windows/
 
