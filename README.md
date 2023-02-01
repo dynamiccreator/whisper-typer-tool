@@ -18,4 +18,4 @@ Step 2:
 pip install -r requirements.txt
 
 Step 3:
-python3 offline-voice-typer.py
+python3 whisper-typer-tool.py
