@@ -20,8 +20,8 @@ Download and Install ffmpeg, git and python3
 
 **Step 2:**
 
-```bash pip install -r requirements.txt```
+    pip install -r requirements.txt
 
 **Step 3:**
 
-```bash python3 whisper-typer-tool.py```
+    bash python3 whisper-typer-tool.py
