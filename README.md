@@ -16,7 +16,7 @@ Download and Install python3 from https://www.python.org/downloads/windows/
 
 **Step 1 (MAC OS - not tested):**
 
-Download and Install ffmpeg, git and python3
+<code>Download and Install ffmpeg, git and python3</code>
 
 **Step 2:**
 
