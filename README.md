@@ -24,4 +24,4 @@ Download and Install ffmpeg, git and python3
 
 **Step 3:**
 
-    bash python3 whisper-typer-tool.py
+    python3 whisper-typer-tool.py
