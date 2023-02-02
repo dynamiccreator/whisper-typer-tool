@@ -11,6 +11,7 @@ from datetime import datetime
 
 #load model
 #model selection -> (tiny base small medium large)
+print("loading model...")
 model = whisper.load_model("tiny")
 print("model loaded")
 file_ready_counter=0
@@ -21,7 +22,7 @@ pykeyboard= keyboard.Controller()
 def transcribe_speech():
     global file_ready_counter
     i=1
-    print("start transcribing...\n")
+    print("ready - start transcribing with F2 ...\n")
     while True:
         while file_ready_counter<i:
             time.sleep(0.01)
