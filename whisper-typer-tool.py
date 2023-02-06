@@ -1,4 +1,5 @@
 from pynput import keyboard
+import codecs
 import whisper
 import time
 import subprocess
@@ -12,8 +13,11 @@ from datetime import datetime
 #load model
 #model selection -> (tiny base small medium large)
 print("loading model...")
-model = whisper.load_model("tiny")
-print("model loaded")
+model_name = "tiny"
+model = whisper.load_model(model_name)
+playsound("model_loaded.wav")
+print(f"{model_name} model loaded")
+
 file_ready_counter=0
 stop_recording=False
 is_recording=False
@@ -30,7 +34,7 @@ def transcribe_speech():
         result = model.transcribe("test"+str(i)+".wav")
         print(result["text"]+"\n")
         now = str(datetime.now()).split(".")[0]
-        with open('transcribe.log', 'a') as f:
+        with codecs.open('transcribe.log', 'a', encoding='utf-8') as f:
             f.write(now+" : "+result["text"]+"\n")       
         for element in result["text"]:
             try:
@@ -131,3 +135,4 @@ def on_release(key):
 
 with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
     listener.join()
+
