@@ -13,7 +13,7 @@ from datetime import datetime
 #load model
 #model selection -> (tiny base small medium large)
 print("loading model...")
-model_name = "medium"
+model_name = "tiny"
 model = whisper.load_model(model_name)
 playsound("model_loaded.wav")
 print(f"{model_name} model loaded")
