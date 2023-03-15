@@ -1,4 +1,3 @@
-from pynput import keyboard
 import codecs
 import whisper
 import time
@@ -8,10 +7,11 @@ import uuid
 import wave
 import os
 import queue
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from playaudio import playaudio
-from datetime import datetime
+from pynput import keyboard
 
 ROOT_DIR = Path(os.path.abspath(os.path.curdir))
 print(f"Root directory: {ROOT_DIR}")
