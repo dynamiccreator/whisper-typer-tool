@@ -1,138 +1,140 @@
-from pynput import keyboard
-import codecs
-import whisper
-import time
-import subprocess
-import threading
-import pyaudio
-import wave
+import contextlib
+import logging
 import os
+import queue
+import struct
+from tempfile import NamedTemporaryFile
+from threading import Thread
+import wave
+
+from pynput import keyboard
 from playsound import playsound
-from datetime import datetime
+from pvrecorder import PvRecorder
+import whisper
 
-#load model
-#model selection -> (tiny base small medium large)
-print("loading model...")
-model_name = "tiny"
-model = whisper.load_model(model_name)
-playsound("model_loaded.wav")
-print(f"{model_name} model loaded")
 
-file_ready_counter=0
-stop_recording=False
-is_recording=False
-pykeyboard= keyboard.Controller()
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+logger = logging.getLogger("whisper-typer")
 
-def transcribe_speech():
-    global file_ready_counter
-    i=1
-    print("ready - start transcribing with F2 ...\n")
+
+def main():
+    # See https://github.com/openai/whisper#available-models-and-languages
+    model_name = "medium"
+    # Use "cpu" if cuda is not present on your machine
+    device = "cuda"
+    # Play sounds on recording start/stop
+    play_sounds = True
+
+    logger.info(f"Load {model_name} model")
+    model = whisper.load_model(model_name, device=device)
+    logger.info(f"Loaded {model_name} model")
+
+    recordings = queue.Queue()  # Paths to recordings (.wav files)
+    control_events = queue.Queue(maxsize=1)  # Start/stop recording events
+
+    transcriber = Thread(target=recording_transcriber, args=(model, recordings))
+    transcriber.start()
+
+    recorder = Thread(
+        target=speech_recorder, args=(recordings, control_events, play_sounds))
+    recorder.start()
+
+    rl = RecordControlListener(control_events)
+    with keyboard.Listener(on_press=rl.on_press, on_release=rl.on_release) as listener:
+        listener.join()
+    # TODO: implement graceful shutdown
+    recorder.join()
+    transcriber.join()
+
+
+def recording_transcriber(model: whisper.Whisper, recordings: queue.Queue):
+    pykeyboard = keyboard.Controller()
     while True:
-        while file_ready_counter<i:
-            time.sleep(0.01)
+        with next_recording(recordings) as recording:
+            result = model.transcribe(recording)
+            logger.info(f"Transcribed {result['text']}")
 
-        result = model.transcribe("test"+str(i)+".wav")
-        print(result["text"]+"\n")
-        now = str(datetime.now()).split(".")[0]
-        with codecs.open('transcribe.log', 'a', encoding='utf-8') as f:
-            f.write(now+" : "+result["text"]+"\n")       
-        for element in result["text"]:
-            try:
-                pykeyboard.type(element)
-                time.sleep(0.0025)
-            except:
-                print("empty or unknown symbol")        
-        os.remove("test"+str(i)+".wav")
-        i=i+1
+            with contextlib.suppress(Exception):
+                pykeyboard.type(f"{result['text']}")
 
-#keyboard events
-pressed = set()
+            # Alternatively, you print each element of the result
+            # if you want to experiment wIth fUnny outpUts lOOKing lIke thIs.
+            # for element in result["text"]:
+            #    with contextlib.suppress(Exception):
+            #        pykeyboard.type(f"{element}")
 
-COMBINATIONS = [
-    {
-        "keys": [
-            #{keyboard.Key.ctrl ,keyboard.Key.shift, keyboard.KeyCode(char="r")},
-            #{keyboard.Key.ctrl ,keyboard.Key.shift, keyboard.KeyCode(char="R")},
-            {keyboard.Key.f2},
-        ],
-        "command": "start record",
-    },
-]
 
-#------------
+@contextlib.contextmanager
+def next_recording(recordings: queue.Queue):
+    recording = recordings.get()
+    yield recording
+    os.remove(recording)
 
-#record audio
-def record_speech():
-    global file_ready_counter
-    global stop_recording
-    global is_recording
 
-    is_recording=True
-    chunk = 1024  # Record in chunks of 1024 samples
-    sample_format = pyaudio.paInt16  # 16 bits per sample
-    channels = 2
-    fs = 44100  # Record at 44100 samples per second
-    p = pyaudio.PyAudio()  # Create an interface to PortAudio
-    stream = p.open(format=sample_format,
-                channels=channels,
-                rate=fs,
-                frames_per_buffer=chunk,
-                input=True)
+def speech_recorder(
+        recordings: queue.Queue, control_events: queue.Queue, play_sounds: bool):
+    while True:
+        control_events.get(block=True)
+        recording_path = record_speech(control_events, play_sounds)
+        recordings.put(recording_path)
 
-    frames = []  # Initialize array to store frames
 
-    print("Start recording...\n")
-    playsound("on.wav")
+def record_speech(control_events: queue.Queue, play_sounds: bool):
+    recorder = PvRecorder(frame_length=128)
 
-    while stop_recording==False:
-        data = stream.read(chunk)
-        frames.append(data)
+    logger.info("Start recording")
+    if play_sounds:
+        playsound("on.wav")
 
-    # Stop and close the stream
-    stream.stop_stream()
-    stream.close()
-    # Terminate the PortAudio interface
-    p.terminate()
-    playsound("off.wav")
-    print('Finish recording')
+    recorder.start()
+    frames = []
+    while control_events.empty():
+        frame = recorder.read()
+        frames.extend(frame)
+    control_events.get()
+    recorder.stop()
 
-    # Save the recorded data as a WAV file
-    wf = wave.open("test"+str(file_ready_counter+1)+".wav", 'wb')
-    wf.setnchannels(channels)
-    wf.setsampwidth(p.get_sample_size(sample_format))
-    wf.setframerate(fs)
-    wf.writeframes(b''.join(frames))
-    wf.close()
+    if play_sounds:
+        playsound("off.wav")
+    logger.info("Finish recording")
 
-    stop_recording=False
-    is_recording=False
-    file_ready_counter=file_ready_counter+1
+    return store_recording(frames)
 
-#------------
 
-#transcribe speech in infinte loop
-t2 = threading.Thread(target=transcribe_speech)
-t2.start()
+def store_recording(frames: list):
+    with NamedTemporaryFile(mode="wb", suffix=".wav", delete=False) as rec:
+        wav = wave.open(rec, "wb")
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(16000)
+        wav.setnframes(512)
+        wav.writeframes(struct.pack("h" * len(frames), *frames))
+        wav.close()
+        return rec.name
 
-#hot key events
-def on_press(key):
-    pressed.add(key)
 
-def on_release(key):
-    global pressed
-    global stop_recording
-    global is_recording
-    for c in COMBINATIONS:
-        for keys in c["keys"]:
-            if keys.issubset(pressed):
-                if c["command"]=="start record" and stop_recording==False and is_recording==False:
-                    t1 = threading.Thread(target=record_speech)
-                    t1.start()
-                else:
-                    if c["command"]=="start record" and is_recording==True:
-                        stop_recording=True
-                pressed = set()
+class RecordControlListener:
+    # This uses F12 for simplicity, but it will also work if multiple keys are listed
+    RECORD_TOGGLE_COMBINATION = {keyboard.Key.f8}
 
-with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-    listener.join()
+    def __init__(self, control_events: queue.Queue):
+        self._recording_control_events = control_events
+        self._pressed_keys = set()
 
+    def on_press(self, key):
+        if key in self.RECORD_TOGGLE_COMBINATION:
+            self._pressed_keys.add(key)
+        else:
+            self._pressed_keys.clear()
+
+    def on_release(self, key):
+        if (self._pressed_keys == self.RECORD_TOGGLE_COMBINATION
+                and key in self._pressed_keys):
+            self._pressed_keys.remove(key)
+            if not self._pressed_keys:
+                with contextlib.suppress(queue.Full):
+                    self._recording_control_events.put_nowait("Toggle recording")
+
+
+if __name__ == "__main__":
+    main()
