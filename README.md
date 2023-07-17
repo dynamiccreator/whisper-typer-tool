@@ -1,27 +1,12 @@
-# whisper-typer-tool
-This is a python script using [openai/whisper](https://github.com/openai/whisper) to type with your voice.
-After you start the script you just press **F2** to start/stop recording. After the record is finsihed, it will type what you said starting at the current cursor position in any editor,input field etc.
+# whisper-typer
+This is a script using [openai/whisper](https://github.com/openai/whisper) to type with your voice.
+
+# Usage
+Start the script and press a hotkey (**F8** by default) to toggle recording. The hotkey is global (available from any window).
+
+When you press the hotkey to stop recording, the script will transcribe the recording and type text starting at the current cursor position in any input field of any window.
 
 # Setup Instructions
-
-**Step 1 (Linux - Ubuntu,Debian):**
-
-    sudo apt-get install python3 python3-pip git ffmpeg
-
-**Step 1 (Windows):**
-
-- Download ffmpeg from https://ffmpeg.org/ , unpack it and paste "ffmpeg.exe" in this folder
-- Download and Install git from https://git-scm.com/download/win
-- Download and Install python3 from https://www.python.org/downloads/windows/
-
-**Step 1 (MAC OS - not tested):**
-
-Download and Install ffmpeg, git and python3
-
-**Step 2:**
-
-    pip install -r requirements.txt
-
-**Step 3:**
-
-    python3 whisper-typer-tool.py
+1. [Install poetry](https://python-poetry.org/docs/#installation)
+2. Install dependencies using `poetry install`
+3. Start the script using `poetry run ./whisper-typer`
