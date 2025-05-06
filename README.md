@@ -27,8 +27,12 @@ pip install uv
 
 **Step 3:**
 
-    uv add -r requirements.txt
+    uv init
 
 **Step 4:**
+
+    uv add -r requirements.txt
+
+**Step 5:**
 
     uv run whisper-typer-tool.py
