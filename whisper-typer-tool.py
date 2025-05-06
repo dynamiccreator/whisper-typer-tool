@@ -7,7 +7,6 @@ import threading
 import pyaudio
 import wave
 import os
-from playsound import playsound
 from datetime import datetime
 
 #load model
@@ -15,7 +14,35 @@ from datetime import datetime
 print("loading model...")
 model_name = "tiny"
 model = whisper.load_model(model_name)
-playsound("model_loaded.wav")
+# Replace playsound with pyaudio for sound playback
+def play_audio_file(filename):
+    # Create a PyAudio object
+    audio = pyaudio.PyAudio()
+    
+    # Open the wave file
+    wf = wave.open(filename, 'rb')
+    
+    # Get the audio format
+    stream = audio.open(
+        format=audio.get_format_from_width(wf.getsampwidth()),
+        channels=wf.getnchannels(),
+        rate=wf.getframerate(),
+        output=True
+    )
+    
+    # Read data and play
+    data = wf.readframes(1024)
+    while data:
+        stream.write(data)
+        data = wf.readframes(1024)
+    
+    # Cleanup
+    stream.stop_stream()
+    stream.close()
+    audio.terminate()
+
+# Play the sound when model is loaded
+play_audio_file("model_loaded.wav")
 print(f"{model_name} model loaded")
 
 file_ready_counter=0
@@ -82,7 +109,7 @@ def record_speech():
     frames = []  # Initialize array to store frames
 
     print("Start recording...\n")
-    playsound("on.wav")
+    play_audio_file("on.wav")
 
     while stop_recording==False:
         data = stream.read(chunk)
@@ -91,9 +118,8 @@ def record_speech():
     # Stop and close the stream
     stream.stop_stream()
     stream.close()
-    # Terminate the PortAudio interface
     p.terminate()
-    playsound("off.wav")
+    play_audio_file("off.wav")
     print('Finish recording')
 
     # Save the recorded data as a WAV file
@@ -135,4 +161,3 @@ def on_release(key):
 
 with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
     listener.join()
-
