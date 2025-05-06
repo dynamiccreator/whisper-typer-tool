@@ -1,6 +1,5 @@
 pynput
 pyaudio
 wave
-playsound==1.2.2
 setuptools-rust
 git+https://github.com/openai/whisper.git
