@@ -1,5 +1,4 @@
 pynput
 pyaudio
-wave
 setuptools-rust
 git+https://github.com/openai/whisper.git
